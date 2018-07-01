@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using zupaTechTest.Models;
 
 namespace zupaTechTest.Controllers
@@ -20,9 +19,9 @@ namespace zupaTechTest.Controllers
 
             if (_context.Seats.Count() == 0)
             {
-                for(int letter = 1; letter <= 10; letter++)
+                for (int letter = 1; letter <= 10; letter++)
                 {
-                    for(int i = 1; i <=10; i++)
+                    for (int i = 1; i <= 10; i++)
                     {
                         //Create the Letter for the Seat Row, then the number
                         string seatLabel = Number2String(letter, true);
@@ -43,23 +42,24 @@ namespace zupaTechTest.Controllers
         {
             return _context.Seats.ToList().Where(seat => seat.BookingId == 0).ToList();
         }
-        
+
         [HttpPost]
         public IActionResult CreateBookings([FromBody]Booking[] bookings)
         {
             if (bookings.Count() > 4)
                 return null;
 
-            foreach(Booking booking in bookings)
+            foreach (Booking booking in bookings)
             {
                 //Retrieve the seat from the context, if it is not already booked, book it
-                Seat existingSeat = _context.Seats.First(seat => seat.Label == booking.Seat);
+                Seat existingSeat = _context.Seats.FirstOrDefault(seat => seat.Label == booking.Seat);
 
-                if(existingSeat.BookingId == 0)
+                //Null check catches seats that should not exist
+                if (existingSeat != null && existingSeat.BookingId == 0)
                 {
                     //Tried adding a Unique Constraint on the table to prevent duplicates on Name and Email, doesn't seem to have worked though
                     //So using this to check for existing combinations
-                    var existingNameAndEmail =_context.Bookings.Where(existingBooking => existingBooking.Name == booking.Name && existingBooking.Email == booking.Email);
+                    var existingNameAndEmail = _context.Bookings.Where(existingBooking => existingBooking.Name == booking.Name && existingBooking.Email == booking.Email);
                     if (existingNameAndEmail.Count() == 0)
                     {
                         _context.Add(booking);
@@ -70,10 +70,6 @@ namespace zupaTechTest.Controllers
                         existingSeat.BookingId = id;
                         _context.SaveChanges();
                     }
-                }
-                else
-                {
-                    //Seat has already been booked
                 }
             }
             return CreatedAtRoute("Create Bookings", new { bookings = bookings }, bookings);
