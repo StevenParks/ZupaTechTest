@@ -43,25 +43,41 @@ namespace zupaTechTest.Controllers
         {
             return _context.Seats.ToList().Where(seat => seat.BookingId == 0).ToList();
         }
-
-
+        
         [HttpPost]
-        public IActionResult Post([FromBody]Booking[] bookings)
+        public IActionResult CreateBookings([FromBody]Booking[] bookings)
         {
             if (bookings.Count() > 4)
                 return null;
 
             foreach(Booking booking in bookings)
-            { 
-                _context.Add(booking);
-                _context.SaveChanges();
+            {
+                //Retrieve the seat from the context, if it is not already booked, book it
+                Seat existingSeat = _context.Seats.First(seat => seat.Label == booking.Seat);
+
+                if(existingSeat.BookingId == 0)
+                {
+                    //Tried adding a Unique Constraint on the table to prevent duplicates on Name and Email, doesn't seem to have worked though
+                    //So using this to check for existing combinations
+                    var existingNameAndEmail =_context.Bookings.Where(existingBooking => existingBooking.Name == booking.Name && existingBooking.Email == booking.Email);
+                    if (existingNameAndEmail.Count() == 0)
+                    {
+                        _context.Add(booking);
+                        _context.SaveChanges();
+
+                        //Save the new booking id to the Seat
+                        int id = booking.ID;
+                        existingSeat.BookingId = id;
+                        _context.SaveChanges();
+                    }
+                }
+                else
+                {
+                    //Seat has already been booked
+                }
             }
             return CreatedAtRoute("Create Bookings", new { bookings = bookings }, bookings);
         }
-
-        //Attempt to Book all Seat/Name/Email combinations in an array
-        //Loop through each Booking object, check that the seat is still available and the Name/EMail combination does not already exist
-        //If all the objects pass, save to the DB as Bookings, if one of them does not pass, return an error message
 
         //Taken from https://social.msdn.microsoft.com/Forums/vstudio/en-US/78e75d1a-0795-4bdb-8a62-ae6faa909986/convert-number-to-alphabet?forum=csharpgeneral
         private string Number2String(int number, bool isCaps)
